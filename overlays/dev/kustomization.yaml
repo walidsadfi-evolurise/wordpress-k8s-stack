@@ -1,0 +1,53 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Local / kind / preview: one replica, small volumes, generated throwaway secrets,
+# plain-HTTP ingress at wordpress.localtest.me.
+resources:
+  - ../../base
+
+patches:
+  - path: patch-dev.yaml
+
+configMapGenerator:
+  - name: wordpress-env
+    namespace: wordpress
+    literals:
+      - WP_ENVIRONMENT_TYPE=development
+      - WP_HOME=http://wordpress.localtest.me
+      - WP_SITEURL=http://wordpress.localtest.me
+      - WP_REDIS_PREFIX=wpdev
+      - WP_DISALLOW_FILE_MODS=false
+
+# Dev only: literals are fine here. Prod uses ExternalSecret / SealedSecret (see overlays/prod).
+secretGenerator:
+  - name: wordpress-db
+    namespace: wordpress
+    literals:
+      - WORDPRESS_DB_HOST=mariadb
+      - WORDPRESS_DB_NAME=wordpress
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=dev-only-password
+  - name: mariadb-root
+    namespace: wordpress
+    literals:
+      - MARIADB_ROOT_PASSWORD=dev-only-root
+  - name: wordpress-salts
+    namespace: wordpress
+    literals:
+      - AUTH_KEY=dev-auth-key
+      - SECURE_AUTH_KEY=dev-secure-auth-key
+      - LOGGED_IN_KEY=dev-logged-in-key
+      - NONCE_KEY=dev-nonce-key
+      - AUTH_SALT=dev-auth-salt
+      - SECURE_AUTH_SALT=dev-secure-auth-salt
+      - LOGGED_IN_SALT=dev-logged-in-salt
+      - NONCE_SALT=dev-nonce-salt
+  - name: backup-s3
+    namespace: wordpress
+    literals:
+      - S3_ENDPOINT=http://minio.minio.svc:9000
+      - S3_BUCKET=wp-backups
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - GPG_PASSPHRASE=dev-only

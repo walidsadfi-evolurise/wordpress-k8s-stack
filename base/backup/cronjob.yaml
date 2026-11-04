@@ -1,0 +1,70 @@
+# Nightly logical dump + uploads tarball, gpg-encrypted, pushed to S3-compatible storage.
+# Restore procedure: docs/RESTORE.md. A backup you never restored is a hope, not a backup.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup
+  namespace: wordpress
+spec:
+  schedule: "15 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 3600
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: backup
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 82
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+            - name: uploads
+              persistentVolumeClaim:
+                claimName: wp-uploads
+                readOnly: true
+            - name: work
+              emptyDir:
+                sizeLimit: 10Gi
+          containers:
+            - name: backup
+              image: ghcr.io/walidsadfi-evolurise/wordpress-k8s-backup:latest
+              envFrom:
+                - secretRef:
+                    name: wordpress-db
+                - secretRef:
+                    name: backup-s3
+              env:
+                - name: DB_HOST
+                  value: mariadb
+                - name: RETENTION_DAYS
+                  value: "30"
+              volumeMounts:
+                - name: uploads
+                  mountPath: /src/uploads
+                  readOnly: true
+                - name: work
+                  mountPath: /work
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 256Mi
+                limits:
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]

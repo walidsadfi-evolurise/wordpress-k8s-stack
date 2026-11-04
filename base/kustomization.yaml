@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base: everything a WordPress/WooCommerce site needs to run well on Kubernetes.
+# Overlays (dev, prod) set the domain, replicas, storage classes and secrets.
+resources:
+  - namespace.yaml
+  - wordpress/serviceaccount.yaml
+  - wordpress/configmap-php.yaml
+  - wordpress/pvc-uploads.yaml
+  - wordpress/deployment.yaml
+  - wordpress/service.yaml
+  - wordpress/hpa.yaml
+  - wordpress/pdb.yaml
+  - wordpress/cronjob-wpcron.yaml
+  - nginx/configmap.yaml
+  - redis/deployment.yaml
+  - redis/service.yaml
+  - mariadb/statefulset.yaml
+  - mariadb/service.yaml
+  - mariadb/configmap.yaml
+  - backup/cronjob.yaml
+  - policies/networkpolicy-default-deny.yaml
+  - policies/networkpolicy-wordpress.yaml
+  - policies/networkpolicy-mariadb.yaml
+  - policies/networkpolicy-redis.yaml
+  - ingress.yaml
+
+labels:
+  - includeSelectors: false
+    includeTemplates: true
+    pairs:
+      app.kubernetes.io/part-of: wordpress-stack

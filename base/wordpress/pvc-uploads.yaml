@@ -1,0 +1,13 @@
+# wp-content/uploads is the only writable, shared state. Code (core, plugins,
+# themes) is baked into the image, so pods are replaceable and scale horizontally.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wp-uploads
+  namespace: wordpress
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi

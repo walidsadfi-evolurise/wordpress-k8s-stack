@@ -1,0 +1,77 @@
+# WP-Cron as a real cron: predictable, observable, doesn't slow down visitors.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wp-cron
+  namespace: wordpress
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 280
+      ttlSecondsAfterFinished: 600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: wp-cron
+        spec:
+          restartPolicy: Never
+          serviceAccountName: wordpress
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 82
+            runAsGroup: 82
+            fsGroup: 82
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+            - name: uploads
+              persistentVolumeClaim:
+                claimName: wp-uploads
+            - name: php-config
+              configMap:
+                name: php-config
+            - name: tmp
+              emptyDir: {}
+          containers:
+            - name: wp-cli
+              image: ghcr.io/walidsadfi-evolurise/wordpress-k8s-php:latest
+              command: ["wp", "cron", "event", "run", "--due-now", "--quiet"]
+              env:
+                - name: HOME
+                  value: /tmp
+                - name: WP_CLI_CACHE_DIR
+                  value: /tmp/wp-cli-cache
+              envFrom:
+                - secretRef:
+                    name: wordpress-db
+                - secretRef:
+                    name: wordpress-salts
+                - configMapRef:
+                    name: wordpress-env
+              volumeMounts:
+                - name: uploads
+                  mountPath: /var/www/html/wp-content/uploads
+                - name: php-config
+                  mountPath: /var/www/html/wp-config-extra.php
+                  subPath: wp-config-extra.php
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]

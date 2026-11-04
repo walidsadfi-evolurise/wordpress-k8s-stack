@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Production: 3+ replicas, RWX storage for uploads, TLS via cert-manager,
+# secrets from an external store, managed database recommended.
+resources:
+  - ../../base
+  - externalsecrets.yaml
+
+patches:
+  - path: patch-prod.yaml
+  # Using a managed database? Uncomment to drop the in-cluster MariaDB:
+  # - target: { kind: StatefulSet, name: mariadb }
+  #   patch: |-
+  #     $patch: delete
+  #     apiVersion: apps/v1
+  #     kind: StatefulSet
+  #     metadata: { name: mariadb }
+
+images:
+  - name: ghcr.io/walidsadfi-evolurise/wordpress-k8s-php
+    newTag: "1.0.0"          # pinned per release by CI (kustomize edit set image)
+  - name: ghcr.io/walidsadfi-evolurise/wordpress-k8s-backup
+    newTag: "1.0.0"
+
+configMapGenerator:
+  - name: wordpress-env
+    namespace: wordpress
+    literals:
+      - WP_ENVIRONMENT_TYPE=production
+      - WP_HOME=https://shop.example.com
+      - WP_SITEURL=https://shop.example.com
+      - WP_REDIS_PREFIX=wpprod
