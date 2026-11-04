@@ -95,14 +95,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: images/php
           push: ${{ github.event_name == 'push' }}
           tags: ghcr.io/${{ github.repository_owner }}/wordpress-k8s-php:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: images/backup
           push: ${{ github.event_name == 'push' }}
