@@ -22,7 +22,8 @@ foreach (['AUTH_KEY', 'SECURE_AUTH_KEY', 'LOGGED_IN_KEY', 'NONCE_KEY', 'AUTH_SAL
     $v = $env($k);
     if ($v === null) {
         http_response_code(500);
-        exit("Missing secret {$k}");
+        fwrite(STDERR, "Missing secret {$k}\n");
+        exit(1);
     }
     define($k, $v);
 }
