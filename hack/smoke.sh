@@ -4,7 +4,13 @@ set -euo pipefail
 BASE="${BASE:-http://wordpress.localtest.me}"
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
-echo "== nginx health";            curl -fsS "$BASE/nginx-health" | grep -qx ok || fail "nginx-health"
+# The ingress controller can take a few seconds to pick up fresh endpoints: retry the first probe.
+echo "== nginx health"
+for _ in $(seq 1 30); do
+  if curl -fsS "$BASE/nginx-health" 2>/dev/null | grep -qx ok; then break; fi
+  sleep 2
+done
+curl -fsS "$BASE/nginx-health" | grep -qx ok || { curl -sSi "$BASE/nginx-health" | head -20; fail "nginx-health"; }
 echo "== app readiness";           curl -fsS "$BASE/wp-json/health/v1/ready" | grep -q '"status":"ok"' || fail "readiness (db / object cache)"
 echo "== home page";               curl -fsS -o /dev/null -w '%{http_code}\n' "$BASE/" | grep -qx 200 || fail "home 200"
 echo "== fastcgi cache warms up";  curl -fsS -o /dev/null "$BASE/"; curl -fsSI "$BASE/" | grep -qi '^x-cache: HIT' || fail "X-Cache HIT on second request"

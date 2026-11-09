@@ -78,7 +78,12 @@ jobs:
       - name: Pod Security (restricted) produced no warnings
         run: kubectl -n wordpress get events --field-selector reason=FailedCreate -o name | grep -q . && exit 1 || echo ok
       - if: failure()
-        run: kubectl -n wordpress get all; kubectl -n wordpress describe pods | tail -200
+        run: |
+          kubectl -n wordpress get all,ingress,endpoints
+          kubectl -n wordpress describe ingress wordpress
+          kubectl -n ingress-nginx logs deployment/ingress-nginx-controller --tail=80
+          kubectl -n wordpress logs deployment/wordpress -c nginx --tail=40
+          kubectl -n wordpress describe pods | tail -120
 
   images:
     runs-on: ubuntu-latest
