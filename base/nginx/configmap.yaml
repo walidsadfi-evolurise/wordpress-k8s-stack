@@ -76,9 +76,17 @@ data:
         }
 
         # REST API and AJAX are never cached: the Store API, MCP and agents need live data.
-        location ~ ^/(?:wp-json|wp-admin/admin-ajax\.php) {
+        # /wp-json is handed straight to index.php: a try_files fallback would re-enter
+        # `location ~ \.php$` and pick up its cache. Needs pretty permalinks.
+        location ^~ /wp-json/ {
             limit_req zone=pages burst=60 nodelay;
-            try_files $uri $uri/ /index.php?$args;
+            include /etc/nginx/conf.d/fastcgi-pass.inc;
+            fastcgi_param SCRIPT_FILENAME $document_root/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+        }
+        location = /wp-admin/admin-ajax.php {
+            limit_req zone=pages burst=60 nodelay;
+            try_files $uri =404;
             include /etc/nginx/conf.d/fastcgi-pass.inc;
         }
 
