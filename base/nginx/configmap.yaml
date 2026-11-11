@@ -48,11 +48,9 @@ data:
         set $https_flag "";
         if ($http_x_forwarded_proto = "https") { set $https_flag "on"; }
 
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header X-Frame-Options "SAMEORIGIN" always;
-        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        # nginx does not inherit add_header into a location that sets its own (X-Cache, Cache-Control),
+        # so the security headers live in an .inc included wherever add_header is used.
+        include /etc/nginx/conf.d/security-headers.inc;
 
         location = /nginx-health { access_log off; default_type text/plain; return 200 "ok\n"; }
         location = /stub_status { access_log off; stub_status; allow 127.0.0.1; deny all; }
@@ -60,6 +58,7 @@ data:
         location ~* \.(?:css|js|mjs|jpe?g|png|gif|webp|avif|svg|ico|woff2?|ttf|eot|mp4|webm|pdf)$ {
             expires 30d;
             add_header Cache-Control "public, immutable";
+            include /etc/nginx/conf.d/security-headers.inc;
             access_log off;
             try_files $uri =404;
         }
@@ -105,6 +104,7 @@ data:
             fastcgi_cache_bypass $skip_cache;
             fastcgi_no_cache $skip_cache;
             add_header X-Cache $upstream_cache_status always;
+            include /etc/nginx/conf.d/security-headers.inc;
         }
     }
 
@@ -121,3 +121,10 @@ data:
     fastcgi_buffer_size 64k;
     fastcgi_read_timeout 120s;
     fastcgi_keep_conn on;
+
+  security-headers.inc: |
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
