@@ -27,6 +27,7 @@ echo "== install WordPress"
 hack/wp.sh core is-installed 2>/dev/null || hack/wp.sh core install \
   --url=http://wordpress.localtest.me --title="Dev shop" \
   --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email
+hack/wp.sh rewrite structure '/%postname%/'
 hack/wp.sh plugin activate redis-cache
 hack/wp.sh redis enable
 
