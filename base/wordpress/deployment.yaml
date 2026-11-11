@@ -177,6 +177,10 @@ spec:
               mountPath: /etc/nginx/conf.d/fastcgi-pass.inc
               subPath: fastcgi-pass.inc
               readOnly: true
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/security-headers.inc
+              subPath: security-headers.inc
+              readOnly: true
             - name: fastcgi-cache
               mountPath: /var/cache/nginx
             - name: nginx-run
