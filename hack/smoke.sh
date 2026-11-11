@@ -11,7 +11,7 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 curl -fsS "$BASE/nginx-health" | grep -qx ok || { curl -sSi "$BASE/nginx-health" | head -20; fail "nginx-health"; }
-echo "== app readiness";           curl -fsS "$BASE/wp-json/health/v1/ready" | grep -q '"status":"ok"' || fail "readiness (db / object cache)"
+echo "== app readiness";           curl -fsS "$BASE/wp-json/health/v1/ready" | grep -q '"status":"ok"' || { curl -sS "$BASE/wp-json/health/v1/ready" | head -c 400; echo; fail "readiness (db / object cache)"; }
 echo "== home page";               curl -fsS -o /dev/null -w '%{http_code}\n' "$BASE/" | grep -qx 200 || fail "home 200"
 echo "== fastcgi cache warms up";  curl -fsS -o /dev/null "$BASE/"; curl -fsSI "$BASE/" | grep -qi '^x-cache: HIT' || fail "X-Cache HIT on second request"
 echo "== query strings bypass";    curl -fsSI "$BASE/?s=probe" | grep -qi '^x-cache: BYPASS' || fail "search BYPASS"
