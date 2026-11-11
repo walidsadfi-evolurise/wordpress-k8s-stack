@@ -68,9 +68,11 @@ jobs:
       - name: Install WordPress and enable the object cache
         run: |
           hack/wp.sh core install --url=http://wordpress.localtest.me --title="CI shop" --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email
+          hack/wp.sh rewrite structure '/%postname%/'   # pretty permalinks: /wp-json/ needs them
           hack/wp.sh plugin activate redis-cache
           hack/wp.sh redis enable
           hack/wp.sh redis status
+          hack/wp.sh eval 'echo wp_using_ext_object_cache() ? "object cache: on\n" : "object cache: OFF\n";'
       - name: Smoke tests
         run: |
           echo "127.0.0.1 wordpress.localtest.me" | sudo tee -a /etc/hosts
